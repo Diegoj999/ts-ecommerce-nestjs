@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. PRODUCTOS
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String
+  price         Float
+  originalPrice Float
+  stock         Int
+  images        Json     
+  isActive      Boolean  @default(true)
+  description   String   @default("")
+  
+  items         OrderItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 2. ORDEN (ENCABEZADO) -> AQUI VA EL USUARIO
+model Order {
+  id          Int         @id @default(autoincrement())
+  total       Float       
+  items       OrderItem[] 
+  
+  // --- CORRECCIÓN: La relación va aquí ---
+  userId      Int?        // Puede ser null si permites compra invitado
+  user        User?       @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime    @default(now())
+}
+
+// 3. ITEMS DE LA ORDEN (RENGLONES)
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+
+  productName String
+  unitPrice   Float     
+  quantity    Int
+  subtotal    Float    
+
+  // --- CORRECCIÓN: Aquí NO va el usuario. Ya está en la Orden padre. ---
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   
+  name      String?
+  role      String   @default("CLIENT") 
+  
+  // Esto ahora funcionará porque Order ya tiene el campo userId
+  orders    Order[]  
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
