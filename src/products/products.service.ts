@@ -39,30 +39,45 @@ export class ProductsService {
   async findTopSelling() {
     const topSales = await this.prisma.orderItem.groupBy({
       by: ['productId'],
-      _sum: {
-        quantity: true,
-      },
-      orderBy: {
-        _sum: {
-          quantity: 'desc',
-        },
-      },
+      _count: { productId: true },
+      orderBy: { _count: { productId: 'desc' } },
       take: 5,
     });
-    const productIds = topSales.map((item) => item.productId);
 
-    // PASO 3: Traer la info completa de esos productos
-    const products = await this.prisma.product.findMany({
-      where: {
-        id: { in: productIds },
-      },
-    });
+    // Obtenemos los IDs y luego los productos completos
+    const topProductIds = topSales.map((item) => item.productId);
 
-    // PASO 4 (Opcional): Ordenar los productos finales según el orden de ventas
-    // (Porque el paso 3 no garantiza el orden)
-    return products.sort((a, b) => {
-      return productIds.indexOf(a.id) - productIds.indexOf(b.id);
-    });
+    let topProducts = [];
+    if (topProductIds.length > 0) {
+      topProducts = await this.prisma.product.findMany({
+        where: { id: { in: topProductIds } },
+      });
+    }
+
+    // --- AQUI EMPIEZA LA MAGIA DEL RELLENO ---
+
+    // PASO 2: Verificar si nos faltan productos para llegar a 5
+    const missingCount = 5 - topProducts.length;
+
+    if (missingCount > 0) {
+      // Obtenemos los IDs que YA tenemos para no repetirlos
+      const existingIds = topProducts.map((p) => p.id);
+
+      // Buscamos productos "de relleno" (por ejemplo, los más nuevos)
+      const fillerProducts = await this.prisma.product.findMany({
+        where: {
+          id: { notIn: existingIds }, // 👈 Clave: Que no sean los que ya encontré
+        },
+        take: missingCount, // 👈 Clave: Solo trae los que faltan (ej. 5, 3, o 1)
+        orderBy: { createdAt: 'desc' }, // Opcional: Rellenar con los más recientes
+      });
+
+      // PASO 3: Fusionamos las dos listas
+      // Ponemos los más vendidos primero, y los de relleno al final
+      topProducts = [...topProducts, ...fillerProducts];
+    }
+
+    return topProducts;
   }
 
 
