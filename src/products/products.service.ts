@@ -36,50 +36,58 @@ export class ProductsService {
     return await this.prisma.product.findMany();
   }
 
-  async findTopSelling() {
+  
+
+async findTopSelling() {
+    // 1. CAMBIO CLAVE: Usamos _sum en lugar de _count
     const topSales = await this.prisma.orderItem.groupBy({
       by: ['productId'],
-      _count: { productId: true },
-      orderBy: { _count: { productId: 'desc' } },
+      _sum: { quantity: true }, // 👈 Sumamos la columna 'quantity'
+      orderBy: { 
+        _sum: { quantity: 'desc' } // 👈 Ordenamos por esa suma
+      },
       take: 5,
     });
 
-    // Obtenemos los IDs y luego los productos completos
+    // topSales ahora se ve así: [{ productId: 5, _sum: { quantity: 12 } }, ...]
+
     const topProductIds = topSales.map((item) => item.productId);
 
     let topProducts = [];
     if (topProductIds.length > 0) {
-      topProducts = await this.prisma.product.findMany({
+      // Buscamos la info completa de los productos
+      const unorderedProducts = await this.prisma.product.findMany({
         where: { id: { in: topProductIds } },
       });
+
+      // 2. CAMBIO CLAVE: Reordenar manual
+      // La base de datos te devuelve los productos desordenados (ej: ID 1, 2, 3...)
+      // Hay que forzar el orden según nuestra lista de ventas (topProductIds)
+      topProducts = topProductIds.map(id => 
+        unorderedProducts.find(product => product.id === id)
+      ).filter(Boolean); // Filtramos por si alguno se borró
     }
 
-    // --- AQUI EMPIEZA LA MAGIA DEL RELLENO ---
+    // --- RELLENO (Esto queda igual) ---
 
-    // PASO 2: Verificar si nos faltan productos para llegar a 5
     const missingCount = 5 - topProducts.length;
 
     if (missingCount > 0) {
-      // Obtenemos los IDs que YA tenemos para no repetirlos
       const existingIds = topProducts.map((p) => p.id);
 
-      // Buscamos productos "de relleno" (por ejemplo, los más nuevos)
       const fillerProducts = await this.prisma.product.findMany({
         where: {
-          id: { notIn: existingIds }, // 👈 Clave: Que no sean los que ya encontré
+          id: { notIn: existingIds },
         },
-        take: missingCount, // 👈 Clave: Solo trae los que faltan (ej. 5, 3, o 1)
-        orderBy: { createdAt: 'desc' }, // Opcional: Rellenar con los más recientes
+        take: missingCount,
+        orderBy: { createdAt: 'desc' },
       });
 
-      // PASO 3: Fusionamos las dos listas
-      // Ponemos los más vendidos primero, y los de relleno al final
       topProducts = [...topProducts, ...fillerProducts];
     }
 
     return topProducts;
-  }
-
+}
 
   // --- BUSCAR UNO ---
   async findOne(id: number) {
