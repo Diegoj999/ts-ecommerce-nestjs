@@ -92,6 +92,52 @@ export class ProductsService {
     return product;
   }
 
+// Endpoint: POST /products/:id/like
+ async toggleLike(userId:number, productId:number){
+  
+  // 1. Buscamos si ya existe el like
+  const existingLike = await this.prisma.favorite.findUnique({
+    where: {
+      userId_productId: { // Prisma crea este nombre por la clave compuesta
+        userId: userId,
+        productId: productId
+      }
+    }
+  });
+
+  if (existingLike) {
+    // 2. Si existe, lo borramos (Quitó el like)
+    await this.prisma.favorite.delete({
+      where: {
+        userId_productId: {
+          userId: userId,
+          productId: productId
+        }
+      }
+    });
+    return { isFavorite: false };
+  } else {
+    // 3. Si no existe, lo creamos (Dio like)
+    await this.prisma.favorite.create({
+      data: {
+        userId: userId,
+        productId: productId
+      }
+    });
+    return { isFavorite: true };
+  }
+}
+
+async findFavoriteIds(userId: number): Promise<number[]> {
+  const favorites = await this.prisma.favorite.findMany({
+    where: { userId },
+    select: { productId: true } // ⚡ Optimización: Solo trae la columna ID
+  });
+
+  // Transformamos [{productId: 1}, {productId: 5}] a [1, 5]
+  return favorites.map(f => f.productId);
+}
+
   // --- VALIDAR Y RESTAR STOCK (Usado por OrdersModule) ---
   async validateAndReduceStock(productId: number, quantity: number, tx: any) {
 

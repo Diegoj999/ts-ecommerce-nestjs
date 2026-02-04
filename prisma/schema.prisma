@@ -20,6 +20,8 @@ model Product {
   
   items         OrderItem[]
 
+  favoritedBy   Favorite[]
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -64,7 +66,24 @@ model User {
   
   // Esto ahora funcionará porque Order ya tiene el campo userId
   orders    Order[]  
+
+  favorites Favorite[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Favorite {
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  Int
+
+  createdAt  DateTime @default(now()) // Para saber cuándo le dio like
+
+  // CLAVE COMPUESTA:
+  // Esto es vital. Asegura que un usuario NO pueda darle like 
+  // dos veces al mismo producto. La combinación userId + productId es única.
+  @@id([userId, productId])
 }
