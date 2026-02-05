@@ -4,6 +4,7 @@ export class Product {
   description: string;
   price: number;
   stock: number;
+  rating: number;
   images: string[]; // 👈 La propiedad en el modelo
   isActive: boolean;
 
@@ -11,14 +12,15 @@ export class Product {
     Object.assign(this, partial);
   }
 
-  static create(id: number, data: { 
-    name: string; 
-    price: number; 
-    stock: number; 
-    description?: string; 
+  static create(id: number, data: {
+    name: string;
+    price: number;
+    stock: number;
+    description?: string;
+    rating: number;
     images?: string[] // 👈 Lo recibimos aquí
   }): Product {
-    
+
     // Validaciones existentes...
     if (data.price <= 0) throw new Error('El precio debe ser mayor a cero.');
     if (data.stock < 0) throw new Error('El stock inicial no puede ser negativo.');
@@ -31,7 +33,8 @@ export class Product {
       price: data.price,
       stock: data.stock,
       // 🛡️ BLINDAJE: Si no hay imágenes, guardamos array vacío
-      images: data.images || [], 
+      rating: 0.0,
+      images: data.images || [],
       isActive: true,
     });
   }

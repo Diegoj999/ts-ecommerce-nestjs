@@ -33,7 +33,11 @@ export class ProductsService {
 
   // --- LISTAR TODOS (Leer de MySQL) ---
   async findAll() {
-    return await this.prisma.product.findMany();
+    return await this.prisma.product.findMany({
+      orderBy: {
+      rating: 'desc', 
+    }, 
+    });
   }
 
   async findTopSelling() {
@@ -86,6 +90,38 @@ export class ProductsService {
 
     return topProducts;
 }
+
+async addReview(userId: number, productId: number, rating: number, comment?: string) {
+  
+  // 1. Guardar o Actualizar el voto del usuario (Upsert)
+  // Si ya votó, actualizamos la nota. Si es nuevo, lo creamos.
+  await this.prisma.review.upsert({
+    where: {
+      userId_productId: { userId, productId } // Gracias al @@unique
+    },
+    update: { rating, comment },
+    create: { userId, productId, rating, comment }
+  });
+
+  // 2. Calcular el nuevo promedio de ESE producto
+  const aggregations = await this.prisma.review.aggregate({
+    where: { productId },
+    _avg: { rating: true },   // Calcula el promedio
+    _count: { rating: true }  // Cuenta cuántos votos hay
+  });
+
+  // 3. Actualizar la "ficha" del producto (para que sea rápido de leer en la App)
+  await this.prisma.product.update({
+    where: { id: productId },
+    data: {
+      rating: aggregations._avg.rating || 0,
+      totalReviews: aggregations._count.rating || 0
+    }
+  });
+
+  return { message: "Review agregada y promedio actualizado" };
+}
+
 
   // --- BUSCAR UNO ---
   async findOne(id: number) {

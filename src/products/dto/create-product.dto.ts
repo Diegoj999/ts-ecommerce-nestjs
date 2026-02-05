@@ -16,6 +16,10 @@ export class CreateProductDto {
   @Min(0)
   stock: number;
 
+   @IsNumber()
+  @Min(0)
+  rating: number;
+
   @IsArray()
   @IsOptional()
   @IsString({ each: true }) // Valida que cada item del array sea string

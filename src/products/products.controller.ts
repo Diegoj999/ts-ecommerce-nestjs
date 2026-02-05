@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -19,11 +19,32 @@ export class ProductsController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('favorites/ids') 
+  @Get('favorites/ids')
   async getFavoriteIds(@Req() req: any) {
     const userId = req.user.userId; // Recuerda: viene de tu JwtStrategy
     return this.productsService.findFavoriteIds(userId);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/review')
+  async rateProduct(
+    @Param('id', ParseIntPipe) productId: number,
+    @Body() body: { rating: number; comment?: string },
+    @Req() req: any
+  ) {
+    // Validamos que sea del 1 al 5
+    if (body.rating < 1 || body.rating > 5) {
+      throw new BadRequestException("El rating debe ser entre 1 y 5");
+    }
+
+    return this.productsService.addReview(
+      req.user.userId,
+      productId,
+      body.rating,
+      body.comment
+    );
+  }
+
 
   @Get('top-5')
   getTopSelling() {
