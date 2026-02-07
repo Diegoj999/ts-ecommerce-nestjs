@@ -38,7 +38,7 @@ model Order {
   items       OrderItem[] 
   
   // --- CORRECCIÓN: La relación va aquí ---
-  userId      Int?        // Puede ser null si permites compra invitado
+  userId      Int?        
   user        User?       @relation(fields: [userId], references: [id])
   
   createdAt   DateTime    @default(now())
@@ -59,7 +59,6 @@ model OrderItem {
   quantity    Int
   subtotal    Float    
 
-  // --- CORRECCIÓN: Aquí NO va el usuario. Ya está en la Orden padre. ---
 }
 
 model User {
@@ -69,7 +68,6 @@ model User {
   name      String?
   role      String   @default("CLIENT") 
   
-  // Esto ahora funcionará porque Order ya tiene el campo userId
   orders    Order[]  
 
   favorites Favorite[]
@@ -87,18 +85,14 @@ model Favorite {
   product    Product  @relation(fields: [productId], references: [id])
   productId  Int
 
-  createdAt  DateTime @default(now()) // Para saber cuándo le dio like
-
-  // CLAVE COMPUESTA:
-  // Esto es vital. Asegura que un usuario NO pueda darle like 
-  // dos veces al mismo producto. La combinación userId + productId es única.
+  createdAt  DateTime @default(now()) 
   @@id([userId, productId])
 }
 
 model Review {
   id        Int      @id @default(autoincrement())
-  rating    Int      // Del 1 al 5
-  comment   String?  // Opcional: "Estaba riquísima"
+  rating    Int      
+  comment   String?  
   createdAt DateTime @default(now())
 
   // Relaciones

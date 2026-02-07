@@ -5,7 +5,7 @@ export class Product {
   price: number;
   stock: number;
   rating: number;
-  images: string[]; // 👈 La propiedad en el modelo
+  images: string[]; 
   isActive: boolean;
 
   constructor(partial: Partial<Product>) {
@@ -18,10 +18,9 @@ export class Product {
     stock: number;
     description?: string;
     rating: number;
-    images?: string[] // 👈 Lo recibimos aquí
+    images?: string[] 
   }): Product {
 
-    // Validaciones existentes...
     if (data.price <= 0) throw new Error('El precio debe ser mayor a cero.');
     if (data.stock < 0) throw new Error('El stock inicial no puede ser negativo.');
     if (!data.name) throw new Error('El producto debe tener un nombre.');
@@ -32,7 +31,6 @@ export class Product {
       description: data.description || '',
       price: data.price,
       stock: data.stock,
-      // 🛡️ BLINDAJE: Si no hay imágenes, guardamos array vacío
       rating: 0.0,
       images: data.images || [],
       isActive: true,

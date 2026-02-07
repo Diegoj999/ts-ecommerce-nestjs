@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { PrismaService } from '../prisma.service'; // Ajusta la ruta si es necesario
-import { ProductsService } from '../products/products.service'; // Ajusta la ruta si es necesario
+import { PrismaService } from '../prisma.service';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class OrdersService {
@@ -10,12 +10,10 @@ export class OrdersService {
     private productsService: ProductsService
   ) { }
 
-  // 👇 CAMBIO 1: Agregamos 'userId' como segundo parámetro
   async create(createOrderDto: CreateOrderDto, userId: number) {
-    
+
     const { items } = createOrderDto;
 
-    // INICIO TRANSACCIÓN
     return await this.prisma.$transaction(async (tx) => {
 
       let totalOrder = 0;
@@ -45,18 +43,30 @@ export class OrdersService {
       // Guardamos la Orden
       const newOrder = await tx.order.create({
         data: {
-          // 👇 CAMBIO 2: Aquí asignamos el usuario a la orden
-          userId: userId, 
-          
+          userId: userId,
           total: totalOrder,
           items: {
-            create: itemsToSave 
+            create: itemsToSave
           }
         },
         include: { items: true }
       });
 
       return newOrder;
+    });
+  }
+
+  async findMyOrders(userId: number) {
+    return await this.prisma.order.findMany({
+      where: {
+        userId: userId
+      },
+      include: {
+        items: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
   }
 
