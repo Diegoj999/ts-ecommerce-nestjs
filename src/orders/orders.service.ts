@@ -36,6 +36,7 @@ export class OrdersService {
           productName: product.name,
           unitPrice: product.price,
           quantity: item.quantity,
+          extras: item.extras ?? [],
           subtotal: subtotal
         });
       }
@@ -47,6 +48,8 @@ export class OrdersService {
           total: totalOrder,
           items: {
             create: itemsToSave
+          
+
           }
         },
         include: { items: true }

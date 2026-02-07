@@ -59,6 +59,8 @@ model OrderItem {
   quantity    Int
   subtotal    Float    
 
+  extras      Json?
+
 }
 
 model User {
