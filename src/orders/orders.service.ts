@@ -10,7 +10,7 @@ export class OrdersService {
     private productsService: ProductsService
   ) { }
 
-  async create(userId: number, createOrderDto: CreateOrderDto) {
+  async create(createOrderDto: CreateOrderDto, userId: number) {
     const { items } = createOrderDto;
 
     return await this.prisma.$transaction(async (tx) => {
@@ -36,10 +36,10 @@ export class OrdersService {
         itemsToSave.push({
           productId: product.id,
           productName: product.name,
-          unitPrice: product.price, 
+          unitPrice: product.price,
           quantity: item.quantity,
-          extras: item.extras ?? [], 
-          subtotal: subtotal 
+          extras: item.extras ?? [],
+          subtotal: subtotal
         });
       }
 
