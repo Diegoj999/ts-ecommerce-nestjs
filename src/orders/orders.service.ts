@@ -10,8 +10,7 @@ export class OrdersService {
     private productsService: ProductsService
   ) { }
 
-  async create(createOrderDto: CreateOrderDto, userId: number) {
-
+  async create(userId: number, createOrderDto: CreateOrderDto) {
     const { items } = createOrderDto;
 
     return await this.prisma.$transaction(async (tx) => {
@@ -20,36 +19,36 @@ export class OrdersService {
       const itemsToSave = [];
 
       for (const item of items) {
-        // Validamos stock 
+
         const product = await this.productsService.validateAndReduceStock(
           item.productId,
           item.quantity,
           tx
         );
 
-        const subtotal = product.price * item.quantity;
+        const extrasTotal = item.extras?.reduce((sum, e) => sum + e.price, 0) || 0;
+
+        const finalUnitPrice = product.price + extrasTotal;
+        const subtotal = finalUnitPrice * item.quantity;
+
         totalOrder += subtotal;
 
-        // Preparamos el item
         itemsToSave.push({
           productId: product.id,
           productName: product.name,
-          unitPrice: product.price,
+          unitPrice: product.price, 
           quantity: item.quantity,
-          extras: item.extras ?? [],
-          subtotal: subtotal
+          extras: item.extras ?? [], 
+          subtotal: subtotal 
         });
       }
 
-      // Guardamos la Orden
       const newOrder = await tx.order.create({
         data: {
           userId: userId,
           total: totalOrder,
           items: {
             create: itemsToSave
-          
-
           }
         },
         include: { items: true }
